@@ -68,12 +68,18 @@ function dedupe(items: FeedItem[]): FeedItem[] {
   return out;
 }
 
-/** YouTube watch/short/embed/youtu.be URL → native hqdefault thumbnail (free, no key). */
-function ytThumb(url: string): string | undefined {
+/** Extract a YouTube video id from common URL shapes, or undefined. */
+export function ytId(url: string): string | undefined {
   const m = url.match(
     /(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/
   );
-  return m ? `https://i.ytimg.com/vi/${m[1]}/hqdefault.jpg` : undefined;
+  return m ? m[1] : undefined;
+}
+
+/** YouTube URL → native hqdefault thumbnail (free, no key). */
+function ytThumb(url: string): string | undefined {
+  const id = ytId(url);
+  return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : undefined;
 }
 
 /** Last-resort thumbnail: a live screenshot of the page (thum.io, no key). The card's <img>

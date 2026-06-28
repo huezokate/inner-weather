@@ -171,6 +171,60 @@ body {
 .card .meta { display: flex; align-items: center; margin-top: auto; font-size: 10px; opacity: 0.5; letter-spacing: 1px; }
 .card .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 5px; }
 
+/* ── Media motion + interactions (tier-reactive) ────────────────────────────
+   Fog = demure: desaturated, soft, still. Sharp = content on steroids: vivid,
+   ken-burns drift, hover-zoom, the top video auto-plays. Perseverance between. */
+.card.playable { cursor: pointer; }
+.card .media .thumb { transition: transform var(--morph), filter var(--morph); }
+
+[data-tier="FOG"] .card .media .thumb { filter: saturate(0.55) brightness(0.92) contrast(0.95); }
+[data-tier="PERSEVERANCE"] .card .media .thumb { filter: saturate(0.95); }
+[data-tier="SHARP"] .card .media .thumb {
+  filter: saturate(1.2) contrast(1.05);
+  animation: kenburns 9s ease-in-out infinite alternate;
+}
+@keyframes kenburns {
+  from { transform: scale(1.02) translate(0, 0); }
+  to   { transform: scale(1.14) translate(-3%, 2%); }
+}
+
+.card.playable:hover .media .thumb { transform: scale(1.12); }
+.card.playable:hover { box-shadow: var(--pop-shadow), 0 8px 22px color-mix(in srgb, var(--accent) 22%, transparent); }
+
+.card .playbadge {
+  position: absolute; z-index: 2; width: 44px; height: 44px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; padding-left: 3px;
+  background: color-mix(in srgb, var(--bg) 50%, transparent); color: #fff; font-size: 15px;
+  backdrop-filter: blur(2px); border: 1.5px solid rgba(255, 255, 255, 0.85);
+}
+[data-tier="SHARP"] .card .playbadge { animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.14); } }
+
+.card .media .hoverplay { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; pointer-events: none; }
+
+/* image-less (curated) tiles → bold Warhol pop tile, not a lonely emoji */
+.card.noimg .media {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--accent) 30%, var(--card)),
+    color-mix(in srgb, var(--accent3) 26%, var(--card)));
+}
+.card.noimg .media .emoji { font-size: 54px; filter: drop-shadow(0 2px 0 color-mix(in srgb, var(--bg) 35%, transparent)); }
+[data-tier="SHARP"] .card.noimg .media .emoji { animation: bounce 1.9s ease-in-out infinite; }
+@keyframes bounce { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-7px) rotate(-5deg); } }
+
+/* video lightbox */
+.modal {
+  position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, #000 72%, transparent); padding: 24px; animation: fadein 180ms ease;
+}
+@keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+.modal-inner { position: relative; width: min(900px, 100%); aspect-ratio: 16 / 9; }
+.modal-inner iframe { width: 100%; height: 100%; border: 0; border-radius: 14px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); }
+.modal-close {
+  position: absolute; top: -42px; right: 0; width: 34px; height: 34px; border-radius: 50%;
+  background: #fff; color: #111; border: 0; cursor: pointer; font-size: 15px; font-weight: 800;
+}
+
 /* shielded = above the ceiling: frosted, demoted. Blur bumped to 8px / lower saturation
    so "shielded" reads unmistakably on a low-contrast projector (T-001-06). */
 .card.shielded { filter: blur(8px) saturate(0.55); transform: scale(0.97); opacity: 0.85; }
@@ -219,4 +273,5 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .card { transition-duration: 0.001ms; }
   .atmos .rain { animation: none; }
+  .card .media .thumb, .card .playbadge, .card.noimg .media .emoji { animation: none !important; }
 }

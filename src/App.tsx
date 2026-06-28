@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { tierForScore } from "./tiers";
-import { HERO_FEED, fetchLiveFeed, applyShield, type FeedItem } from "./feed";
+import { HERO_FEED, fetchLiveFeed, applyShield, ytId, type FeedItem } from "./feed";
 import { fetchOuraReadiness } from "./sources/oura";
 import { writeDiary, readDiary, type DiaryEntry } from "./lib/insforge";
 
@@ -61,6 +61,9 @@ export default function App() {
   const [live, setLive] = useState<FeedItem[]>([]);
   // Recent readings shown in the "weather diary" strip (the NASI Memory pillar).
   const [diary, setDiary] = useState<DiaryEntry[]>([]);
+  // Tap-to-play: a YouTube video open in the lightbox (id); plus the card hovered for inline preview.
+  const [modalVideo, setModalVideo] = useState<string | null>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
   // Once the user drags the slider, their value wins — a late Oura response must not
   // clobber it. A ref (not state) so the async effect reads it without re-rendering.
   const userTouched = useRef(false);
@@ -122,6 +125,15 @@ export default function App() {
   const orderKey = items.map((i) => i.id).join(",");
   const register = useFlipReorder(orderKey);
 
+  const reduceMotion =
+    typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // In Sharp ("content on steroids") the top video auto-plays inline (muted); others play on
+  // hover. Honors reduced-motion by not auto-playing anything.
+  const autoPlayId =
+    tier.key === "SHARP" && !reduceMotion
+      ? items.find((i) => !i.shielded && i.url && ytId(i.url))?.id
+      : undefined;
+
   // Persist each *settled* reading. Debounced ~900ms (matches the morph feel) so dragging
   // the slider writes one row when you stop, not one per pixel. Guarded so a failed write
   // (or missing keys → localStorage) can never break the demo. Optimistically prepends the
@@ -145,12 +157,27 @@ export default function App() {
     return () => clearTimeout(t);
   }, [score, tier.key, shieldedCount, overrides]);
 
+  // Esc closes the video lightbox.
+  useEffect(() => {
+    if (!modalVideo) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setModalVideo(null);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [modalVideo]);
+
   function flipToSharp() {
     setScore((s) => (s >= 80 ? 61 : 88));
   }
 
   function override(id: string) {
     setOverrides((prev) => new Set(prev).add(id));
+  }
+
+  // Open a card: YouTube → in-app lightbox player; anything else → a new tab.
+  function openItem(it: FeedItem) {
+    const vid = it.url ? ytId(it.url) : undefined;
+    if (vid) setModalVideo(vid);
+    else if (it.url) window.open(it.url, "_blank", "noopener,noreferrer");
   }
 
   return (
@@ -223,25 +250,45 @@ export default function App() {
         <section className="feed">
           {items.map((it, idx) => {
             const shielded = it.shielded && !overrides.has(it.id);
+            const vid = it.url ? ytId(it.url) : undefined;
+            const playable = !shielded && !!it.url;
+            const playing = playable && !!vid && (hovered === it.id || autoPlayId === it.id);
             return (
               <article
                 key={it.id}
                 ref={(el) => register(el, it.id)}
-                className={`card${shielded ? " shielded" : ""}`}
+                className={`card${shielded ? " shielded" : ""}${playable ? " playable" : ""}${
+                  it.thumbnail ? "" : " noimg"
+                }`}
                 style={{ "--i": idx } as CSSProperties}
+                onClick={() => playable && openItem(it)}
+                onMouseEnter={() => playable && vid && setHovered(it.id)}
+                onMouseLeave={() => setHovered((h) => (h === it.id ? null : h))}
               >
                 <div className="media">
-                  {it.thumbnail && (
-                    <img
-                      className="thumb"
-                      src={it.thumbnail}
-                      alt=""
-                      loading="lazy"
-                      referrerPolicy="no-referrer"
-                      onError={(e) => e.currentTarget.remove()}
+                  {playing ? (
+                    <iframe
+                      className="thumb hoverplay"
+                      src={`https://www.youtube.com/embed/${vid}?autoplay=1&mute=1&controls=0&rel=0&playsinline=1&loop=1&playlist=${vid}`}
+                      title=""
+                      allow="autoplay; encrypted-media"
                     />
+                  ) : (
+                    <>
+                      {it.thumbnail && (
+                        <img
+                          className="thumb"
+                          src={it.thumbnail}
+                          alt=""
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                          onError={(e) => e.currentTarget.remove()}
+                        />
+                      )}
+                      <span className="emoji">{it.emoji ?? "🗞️"}</span>
+                      {vid && <span className="playbadge">▶</span>}
+                    </>
                   )}
-                  <span className="emoji">{it.emoji ?? "🗞️"}</span>
                 </div>
                 <div className="cbody">
                   <div className="ctitle">{it.title}</div>
@@ -253,7 +300,13 @@ export default function App() {
                 <div className="shieldveil">
                   <span className="lock">🛡</span>
                   <span className="stxt">shielded — your ring says rest</span>
-                  <span className="override" onClick={() => override(it.id)}>
+                  <span
+                    className="override"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      override(it.id);
+                    }}
+                  >
                     tap to override
                   </span>
                 </div>
@@ -261,6 +314,22 @@ export default function App() {
             );
           })}
         </section>
+
+        {modalVideo && (
+          <div className="modal" onClick={() => setModalVideo(null)}>
+            <div className="modal-inner" onClick={(e) => e.stopPropagation()}>
+              <button className="modal-close" onClick={() => setModalVideo(null)} aria-label="Close video">
+                ✕
+              </button>
+              <iframe
+                src={`https://www.youtube.com/embed/${modalVideo}?autoplay=1&rel=0`}
+                title="Video player"
+                allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        )}
       </main>
     </>
   );
