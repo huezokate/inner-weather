@@ -1,77 +1,60 @@
-# Deploying Inner Weather
+# Deploying Inner Weather (Vercel)
 
-Inner Weather is a static Vite SPA. The local demo runs fine with keys in `.env.local`, but
-**a public deploy must move secrets off the client first** — read the ⚠ section before
-publishing anything.
+Inner Weather is a Vite SPA **plus three serverless functions** (`api/youcom.ts`,
+`api/oura.ts`, `api/reddit.ts`). The functions are the production replacement for the
+dev-only Vite proxies: the browser calls `/api/*` same-origin (no CORS) and the function
+injects the secret key server-side, so **no API key ever ships in the client bundle**.
 
-## 1. Build
+## 1. Import the repo
 
-```bash
-npm run build      # tsc -b && vite build → dist/
-npm run preview    # serve dist/ locally to smoke-test the production build
-```
+1. Vercel → **Add New… → Project** → import `huezokate/inner-weather`.
+2. **Framework Preset: Vite** (auto-detected). Build `npm run build`, output `dist`,
+   install `npm install`. The `api/` directory is picked up automatically as Edge functions.
 
-`dist/` is a fully static bundle (HTML/CSS/JS) — host it anywhere static.
+## 2. Environment variables (the important part)
 
-## 2. Host (match Kate's other projects)
+Set these in **Project → Settings → Environment Variables** (all environments).
+**Copy the values from your local `.env.local`** — they aren't in the repo.
 
-**Netlify**
-- Drag-and-drop `dist/` at app.netlify.com, **or** connect the repo with
-  build command `npm run build` and publish directory `dist`.
-- Add an SPA fallback so client routes resolve — `public/_redirects`:
-  ```
-  /*  /index.html  200
-  ```
+| Vercel variable | Value (from `.env.local`) | Scope | Why |
+|---|---|---|---|
+| `YOU_API_KEY` | the value of `VITE_YOU_API_KEY` | **server only** | read by `api/youcom.ts`; **no** `VITE_` prefix so it's never bundled |
+| `OURA_TOKEN` | the value of `VITE_OURA_TOKEN` | **server only** | read by `api/oura.ts`; **no** `VITE_` prefix |
+| `VITE_INSFORGE_BASE_URL` | same | client (bundled) | InsForge base URL |
+| `VITE_INSFORGE_ANON_KEY` | same | client (bundled) | anon key is public by design, gated by RLS |
 
-**GitHub Pages**
-- Push `dist/` to a `gh-pages` branch (e.g. via `gh-pages` CLI or an Action).
-- For a **project** page served under `/<repo>/`, set Vite's base:
-  ```ts
-  // vite.config.ts
-  export default defineConfig({ base: "/inner-weather/", /* …plugins, server… */ })
-  ```
-  (A user/org page at the domain root needs no base.)
+**Do NOT set** `VITE_YOU_API_KEY` or `VITE_OURA_TOKEN` in Vercel — the `VITE_` prefix would
+inline them into the public bundle. Prod uses the un-prefixed `YOU_API_KEY` / `OURA_TOKEN`
+above. The admin `INSFORGE_API_KEY` is **not** needed on Vercel and must never be added to
+client code or the deploy env.
 
-## 3. ⚠ Secrets — required before any public deploy
+## 3. Deploy
 
-This is a guardrail, not a nicety. Two things break going from `npm run dev` to a public
-static build:
+Hit **Deploy**. Every push to `main` redeploys automatically.
 
-1. **The dev proxies disappear.** `vite.config.ts` proxies `/reddit`, `/oura`, `/youcom`
-   to dodge CORS. Those exist **only** in `vite dev`/`vite preview` — a static `dist/` has
-   no server, so those paths 404 in production. Reddit (public JSON) and the You.com / Oura
-   calls must instead go through a real backend.
-2. **`VITE_`-prefixed env vars are inlined into the bundle.** Vite bakes every `VITE_*`
-   value into the shipped JS. So `VITE_YOU_API_KEY` (the You.com key) and `VITE_OURA_TOKEN`
-   (a personal Oura token) would be **publicly readable** in `dist/`. Do not ship them.
+## 4. What works where
 
-**Do this before publishing:**
+| Source | Local (`npm run dev`) | Vercel (prod) | Notes |
+|---|---|---|---|
+| Curated HERO_FEED + slider + flip | ✅ | ✅ | the demo floor, zero keys |
+| You.com live lane | ✅ Vite proxy | ✅ `/api/youcom` | the $1K integration |
+| Oura readiness | ✅ Vite proxy | ✅ `/api/oura` | sets the tier on load |
+| InsForge weather diary | ✅ | ✅ | anon key + RLS, client-side |
+| Reddit lanes | ⚠️ often 403 | ⚠️ often 403 | Reddit blocks datacenter/anon IPs; lane falls back to empty, demo floor unaffected. Candidate for a Hacker News / RSS swap. |
 
-- Move **You.com** and **Oura** behind a serverless function (Netlify Function, Cloudflare
-  Worker, or similar). The function holds the key in a server-side env var and proxies the
-  request; the client calls your function's URL instead of the third party. Drop
-  `VITE_YOU_API_KEY` and `VITE_OURA_TOKEN` from the deploy environment entirely. This also
-  solves the CORS/proxy gap from (1) in one move.
-- **InsForge anon key** (`VITE_INSFORGE_ANON_KEY`, `VITE_INSFORGE_BASE_URL`) **may** stay
-  client-side — the anon key is designed to be public and is gated by RLS (the `diary`
-  table's `SELECT`/`INSERT` policies for `anon`). Confirm RLS is still enabled before
-  deploying.
-- The admin **`INSFORGE_API_KEY`** is **not** `VITE_`-prefixed, so it is never bundled —
-  keep it that way. It must **never** appear in client code or the deploy env.
-
-If You.com / Oura aren't wired to a function yet, deploy with those integrations disabled
-(missing keys → the app falls back to the curated HERO_FEED + slider, which is the demo
-floor and works with zero keys). The flip wow needs no live source.
-
-## 4. Pre-deploy checklist
+## 5. Pre-deploy sanity
 
 ```bash
-npx tsc -b                                   # clean
-npm run build                                # succeeds
-grep -rl "VITE_YOU_API_KEY\|VITE_OURA_TOKEN" dist || echo "no raw key names in bundle"
-# ^ a literal-name grep is a sanity check, not proof — the *values* are what leak.
-#   The real guarantee is: those VITE_ vars are absent from the deploy env (step 3).
+npx tsc -b        # clean
+npm run build     # succeeds → dist/
+# confirm no secret VALUES are in the bundle (names alone are harmless):
+grep -rl "ydc-sk-\|Bearer " dist || echo "no raw key values in bundle ✅"
 ```
 
-Also verify the InsForge `diary` table still has RLS enabled and the anon `SELECT`/`INSERT`
-policies in place (T-001-04 provisioned these).
+Also confirm the InsForge `diary` table still has RLS + the anon `SELECT`/`INSERT` policies
+(provisioned in T-001-04).
+
+## Other hosts
+
+Netlify/Cloudflare work too — the `api/` functions would need that platform's function format
+(`netlify/functions/*` + `netlify.toml`, or a Worker). Vercel is the supported path here.
