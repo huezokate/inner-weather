@@ -1,0 +1,209 @@
+/* Inner Weather — Warhol-style tier morph: ONE composition, re-inked per state.
+   Fog ↔ Sharp are a figure-ground inversion (purple bg / pale ink ↔ white bg / purple ink);
+   Perseverance is the warm beige hinge where the purple migrates from ground to figure.
+   Flat pop-art color — glow retired, hard screenprint offsets instead.
+   Palette WCAG-AA verified (every body pair ≥ 4.5:1; pink/yellow are fills, not body text). */
+
+:root {
+  /* default = FOG, so the very first paint matches before App sets data-tier */
+  --bg: #2e2150; --fg: #ede7f6; --card: #3d2e66;
+  --accent: #ffa8d5;   /* pink — primary, text-safe on bg */
+  --accent2: #c9b3f0;  /* lavender (foreshadows Perseverance) */
+  --accent3: #ffd60a;  /* yellow pop */
+  --border: rgba(255, 168, 213, 0.5); --border-w: 1.6px;
+  --glow: 0px; --glow-lg: 0px;          /* glow retired — flat pop, not cyberpunk */
+  --pop-shadow: 4px 4px 0 #160d2b;      /* hard screenprint offset, zero blur */
+  --fog-opacity: 0.5; --rain-opacity: 0.16; --grid-opacity: 0;
+  --morph: 900ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  font-family: "Helvetica Neue", Helvetica, Arial, "Inter", system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+/* ── Tier themes (atomic — set the whole set, never one token) ────────────── */
+[data-tier="FOG"] {
+  --bg: #2e2150; --fg: #ede7f6; --card: #3d2e66;
+  --accent: #ffa8d5; --accent2: #c9b3f0; --accent3: #ffd60a;
+  --border: rgba(255, 168, 213, 0.5); --border-w: 1.6px;
+  --glow: 0px; --glow-lg: 0px;
+  --pop-shadow: 4px 4px 0 #160d2b;
+  --fog-opacity: 0.5; --rain-opacity: 0.16; --grid-opacity: 0;
+  color-scheme: dark;
+}
+[data-tier="PERSEVERANCE"] {
+  --bg: #e8dccb; --fg: #3a2e2a; --card: #f2eadd;
+  --accent: #7a3f9e;   /* the migrating purple */
+  --accent2: #9b4a2f;  /* terracotta brown — grounding */
+  --accent3: #e91e8c;  /* pink pop */
+  --border: rgba(122, 63, 158, 0.5); --border-w: 1.6px;
+  --glow: 0px; --glow-lg: 0px;
+  --pop-shadow: 4px 4px 0 #d3c3a4;
+  --fog-opacity: 0.16; --rain-opacity: 0; --grid-opacity: 0;
+  color-scheme: light;
+}
+[data-tier="SHARP"] {
+  --bg: #ffffff; --fg: #4a2e8c; --card: #f4f0fb;
+  --accent: #5a2ea6;   /* purple ink — Fog, inverted */
+  --accent2: #e5197e;  /* pink pop */
+  --accent3: #ffd60a;  /* yellow = the sun (carries the "sharp clarity") */
+  --border: rgba(90, 46, 166, 0.45); --border-w: 1.8px;
+  --glow: 0px; --glow-lg: 0px;
+  --pop-shadow: 5px 5px 0 #4a2e8c;     /* purple registration offset on white */
+  --fog-opacity: 0; --rain-opacity: 0; --grid-opacity: 0;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  min-height: 100vh;
+  transition: background var(--morph), color var(--morph);
+  overflow-x: hidden;
+}
+
+/* ── Atmosphere layers (soft fog veil + faint rain; the tech grid is retired) ── */
+.atmos { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+
+.atmos .grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(var(--accent) 1px, transparent 1px),
+    linear-gradient(90deg, var(--accent) 1px, transparent 1px);
+  background-size: 44px 44px;
+  opacity: var(--grid-opacity);
+  transition: opacity var(--morph);
+}
+.atmos .fog {
+  position: absolute; inset: 0;
+  background: radial-gradient(120% 80% at 50% 0%, transparent 30%, var(--bg) 100%);
+  opacity: var(--fog-opacity);
+  transition: opacity var(--morph);
+}
+.atmos .rain {
+  position: absolute; inset: -20% 0 0 0;
+  opacity: var(--rain-opacity);
+  transition: opacity var(--morph);
+  background-image: repeating-linear-gradient(
+    100deg, transparent 0 8px,
+    color-mix(in srgb, var(--accent2) 35%, transparent) 8px 9px
+  );
+  background-size: 100% 200%;
+  animation: rainfall 0.9s linear infinite;
+}
+@keyframes rainfall { from { background-position: 0 0; } to { background-position: 40px 200%; } }
+
+/* ── Layout ─────────────────────────────────────────────────────────────── */
+.app { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: 28px 18px 80px; }
+
+.header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand { font-size: 13px; font-weight: 700; letter-spacing: 4px; text-transform: uppercase; opacity: 0.85; }
+.readout { display: flex; align-items: baseline; gap: 10px; }
+.score { font-size: 44px; font-weight: 800; letter-spacing: -1px; }
+.badge {
+  font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+  border: var(--border-w) solid var(--accent); color: var(--accent);
+  padding: 4px 10px; border-radius: 999px;
+  transition: all var(--morph);
+}
+.blurb { opacity: 0.72; font-size: 13px; margin-top: 4px; }
+.mode-tag { font-size: 11px; opacity: 0.55; letter-spacing: 2px; }
+
+/* ── Readiness control ──────────────────────────────────────────────────── */
+.control { margin: 22px 0 8px; }
+.slider {
+  width: 100%; appearance: none; height: 6px; border-radius: 4px;
+  /* pale pink (left) → bright yellow (right) — fixed pop pairing, reads on every tier */
+  background: linear-gradient(90deg, #ffa8d5, #ffd60a);
+  outline: none;
+}
+.slider::-webkit-slider-thumb {
+  appearance: none; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--accent); cursor: pointer;
+  border: 2px solid var(--bg);
+  box-shadow: var(--pop-shadow);
+}
+.slider::-moz-range-thumb {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--accent); cursor: pointer; border: 2px solid var(--bg);
+}
+.flip {
+  margin: 18px 0 26px; width: 100%; padding: 14px;
+  background: var(--accent); color: var(--bg);
+  border: var(--border-w) solid var(--bg); border-radius: 12px;
+  font: inherit; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; cursor: pointer;
+  box-shadow: var(--pop-shadow);
+  transition: background var(--morph), color var(--morph), transform 120ms ease, box-shadow 120ms ease;
+}
+.flip:hover { filter: brightness(1.06); }
+.flip:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--bg); }
+
+/* ── Feed grid ──────────────────────────────────────────────────────────── */
+.shield-count { font-size: 12px; opacity: 0.65; margin-bottom: 12px; }
+.feed { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.card {
+  position: relative; background: var(--card);
+  border: var(--border-w) solid var(--border); border-radius: 16px;
+  padding: 16px; min-height: 128px; overflow: hidden;
+  /* --i is the card's visual index (set inline from App.tsx); the shield lifts in a
+     staggered wave on the flip — far more legible on a projector than one flat un-blur. */
+  --i-delay: calc(var(--i, 0) * 45ms);
+  box-shadow: var(--pop-shadow);
+  transition: background var(--morph), border-color var(--morph), box-shadow var(--morph),
+    filter 700ms ease var(--i-delay),
+    transform 700ms ease var(--i-delay);
+}
+.card .emoji { font-size: 30px; display: block; margin-bottom: 10px; }
+.card .ctitle { font-size: 14px; line-height: 1.4; font-weight: 600; }
+.card .meta { position: absolute; bottom: 10px; right: 12px; font-size: 10px; opacity: 0.5; letter-spacing: 1px; }
+.card .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 4px; }
+
+/* shielded = above the ceiling: frosted, demoted. Blur bumped to 8px / lower saturation
+   so "shielded" reads unmistakably on a low-contrast projector (T-001-06). */
+.card.shielded { filter: blur(8px) saturate(0.55); transform: scale(0.97); opacity: 0.85; }
+.card .shieldveil { display: none; }
+.card.shielded .shieldveil {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 6px;
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+  backdrop-filter: blur(2px);
+}
+.card.shielded .shieldveil > * { filter: blur(0); }
+.card.shielded .shieldveil .lock { font-size: 22px; }
+.card.shielded .shieldveil .stxt { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; opacity: 0.9; text-align: center; padding: 0 10px; }
+.card.shielded .shieldveil .override { font-size: 10px; opacity: 0.7; text-decoration: underline; cursor: pointer; }
+
+@media (max-width: 520px) { .feed { grid-template-columns: 1fr; } }
+
+/* ── Weather diary strip (NASI Memory pillar) ───────────────────────────────
+   Each chip is a self-contained Warhol swatch of the reading's weather: it wears
+   the full bg+ink pairing of the tier it captured, so the strip stays legible no
+   matter which tier the page is currently morphed to. */
+.diary { margin: 0 0 18px; }
+.diary-label {
+  display: block; font-size: 11px; opacity: 0.55; letter-spacing: 2px;
+  text-transform: uppercase; margin-bottom: 8px;
+}
+.diary-track {
+  display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px;
+  scrollbar-width: none;
+}
+.diary-track::-webkit-scrollbar { display: none; }
+.diary-chip {
+  flex: 0 0 auto; min-width: 34px; text-align: center;
+  font-size: 13px; font-weight: 700; padding: 6px 10px; border-radius: 999px;
+  background: var(--card); color: var(--fg);
+  border: var(--border-w) solid var(--border);
+  transition: all var(--morph);
+}
+.diary-chip[data-tier="FOG"] { background: #2e2150; color: #ede7f6; border-color: #ffa8d5; }
+.diary-chip[data-tier="PERSEVERANCE"] { background: #e8dccb; color: #3a2e2a; border-color: #7a3f9e; }
+.diary-chip[data-tier="SHARP"] { background: #ffffff; color: #4a2e8c; border-color: #5a2ea6; }
+
+/* ── Accessibility: respect reduced motion ──────────────────────────────────
+   Cards reorder instantly (no slide/cascade) and the rain holds still. The
+   JS FLIP in App.tsx also bails out under this query — the un-blur still reads. */
+@media (prefers-reduced-motion: reduce) {
+  .card { transition-duration: 0.001ms; }
+  .atmos .rain { animation: none; }
+}
