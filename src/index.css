@@ -94,25 +94,28 @@ body {
 @keyframes rainfall { from { background-position: 0 0; } to { background-position: 40px 200%; } }
 
 /* ── Layout ─────────────────────────────────────────────────────────────── */
-.app { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; padding: 28px 18px 80px; }
+.app { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; padding: 28px 22px 80px; }
 
-.header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.brand { font-size: 13px; font-weight: 700; letter-spacing: 4px; text-transform: uppercase; opacity: 0.85; }
-.readout { display: flex; align-items: baseline; gap: 10px; }
-.score { font-size: 44px; font-weight: 800; letter-spacing: -1px; }
-.badge {
-  font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
-  border: var(--border-w) solid var(--accent); color: var(--accent);
-  padding: 4px 10px; border-radius: 999px;
-  transition: all var(--morph);
+/* ── Header: title bar → tier readout → full-width slider (Fog … Sharp) ───── */
+.header { display: flex; flex-direction: column; gap: 12px; }
+.titlebar { border-bottom: var(--border-w) solid var(--border); padding-bottom: 10px; }
+.brand { font-size: 18px; font-weight: 800; letter-spacing: 5px; text-transform: uppercase; }
+.readout-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.readout { display: flex; align-items: baseline; gap: 12px; }
+.score { font-size: 30px; font-weight: 700; letter-spacing: -1px; opacity: 0.7; }
+.tiername {
+  font-size: 40px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--accent); line-height: 0.95; transition: color var(--morph);
 }
-.blurb { opacity: 0.72; font-size: 13px; margin-top: 4px; }
+.blurb { opacity: 0.72; font-size: 14px; }
 .mode-tag { font-size: 11px; opacity: 0.55; letter-spacing: 2px; }
+.badge { font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; border: var(--border-w) solid var(--accent); color: var(--accent); padding: 4px 10px; border-radius: 999px; }
 
-/* ── Readiness control ──────────────────────────────────────────────────── */
-.control { margin: 22px 0 8px; }
+/* ── Readiness control: end labels flank a flex-grown slider ─────────────── */
+.control { display: flex; align-items: center; gap: 12px; margin: 6px 0 2px; }
+.slider-end { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; opacity: 0.6; white-space: nowrap; }
 .slider {
-  width: 100%; appearance: none; height: 6px; border-radius: 4px;
+  flex: 1; appearance: none; height: 6px; border-radius: 4px;
   /* pale pink (left) → bright yellow (right) — fixed pop pairing, reads on every tier */
   background: linear-gradient(90deg, #ffa8d5, #ffd60a);
   outline: none;
@@ -139,12 +142,27 @@ body {
 .flip:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--bg); }
 
 /* ── Feed grid ──────────────────────────────────────────────────────────── */
-.shield-count { font-size: 12px; opacity: 0.65; margin-bottom: 12px; }
-.feed { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+/* notepad-style dashed section dividers */
+.divider { height: 0; border: 0; border-top: 1.5px dashed var(--border); margin: 18px 0; opacity: 0.85; }
+
+/* ── "Content drawn from …" feed header ─────────────────────────────────── */
+.feed-head { margin: 2px 0 16px; }
+.feed-title { font-size: 12px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; opacity: 0.7; }
+.feed-sources { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.src-tag {
+  font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: lowercase;
+  padding: 3px 9px; border-radius: 999px;
+  border: var(--border-w) solid var(--accent); color: var(--accent);
+}
+.shield-note { font-size: 11px; opacity: 0.55; letter-spacing: 1px; }
+
+/* ── Feed: masonry (3 cols desktop / 2 mobile), variable-height tiles ────── */
+.feed { column-count: 3; column-gap: 16px; }
 .card {
   position: relative; background: var(--card);
   border: var(--border-w) solid var(--border); border-radius: 16px;
   overflow: hidden; display: flex; flex-direction: column;
+  break-inside: avoid; width: 100%; margin-bottom: 16px;
   /* --i is the card's visual index (set inline from App.tsx); the shield lifts in a
      staggered wave on the flip — far more legible on a projector than one flat un-blur. */
   --i-delay: calc(var(--i, 0) * 45ms);
@@ -164,10 +182,7 @@ body {
 .card .media .thumb { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
 .card .media .emoji { font-size: 46px; line-height: 1; }
 .card .cbody { display: flex; flex-direction: column; gap: 8px; flex: 1; padding: 13px 15px 15px; }
-.card .ctitle {
-  font-size: 14px; line-height: 1.35; font-weight: 600;
-  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
-}
+.card .ctitle { font-size: 14px; line-height: 1.35; font-weight: 600; }
 .card .meta { display: flex; align-items: center; margin-top: auto; font-size: 10px; opacity: 0.5; letter-spacing: 1px; }
 .card .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 5px; }
 
@@ -240,7 +255,7 @@ body {
 .card.shielded .shieldveil .stxt { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; opacity: 0.9; text-align: center; padding: 0 10px; }
 .card.shielded .shieldveil .override { font-size: 10px; opacity: 0.7; text-decoration: underline; cursor: pointer; }
 
-@media (max-width: 520px) { .feed { grid-template-columns: 1fr; } }
+@media (max-width: 860px) { .feed { column-count: 2; } }
 
 /* ── Weather diary strip (NASI Memory pillar) ───────────────────────────────
    Each chip is a self-contained Warhol swatch of the reading's weather: it wears

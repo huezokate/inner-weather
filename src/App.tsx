@@ -134,6 +134,9 @@ export default function App() {
       ? items.find((i) => !i.shielded && i.url && ytId(i.url))?.id
       : undefined;
 
+  // Distinct sources currently in the feed, for the "content drawn from" header.
+  const sources = Array.from(new Set(items.map((i) => i.source)));
+
   // Persist each *settled* reading. Debounced ~900ms (matches the morph feel) so dragging
   // the slider writes one row when you stop, not one per pixel. Guarded so a failed write
   // (or missing keys → localStorage) can never break the demo. Optimistically prepends the
@@ -165,10 +168,6 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [modalVideo]);
 
-  function flipToSharp() {
-    setScore((s) => (s >= 80 ? 61 : 88));
-  }
-
   function override(id: string) {
     setOverrides((prev) => new Set(prev).add(id));
   }
@@ -190,61 +189,76 @@ export default function App() {
 
       <main className="app">
         <header className="header">
-          <div>
-            <div className="brand">◐ Inner Weather</div>
-            <div className="blurb">{tier.blurb}</div>
+          <div className="titlebar">
+            <span className="brand">◐ Inner Weather</span>
           </div>
-          <div style={{ textAlign: "right" }}>
+
+          <div className="readout-row">
+            <div className="blurb">{tier.blurb}</div>
             <div className="readout">
               <span className="score">{score}</span>
-              <span className="badge">{tier.label}</span>
+              <span className="tiername">{tier.label}</span>
             </div>
-            <div className="mode-tag">NASI · {tier.mode} mode · 🛡 {shieldedCount} shielded</div>
           </div>
+
+          <div className="control">
+            <span className="slider-end">Fog</span>
+            <input
+              className="slider"
+              type="range"
+              min={50}
+              max={98}
+              value={score}
+              onChange={(e) => {
+                userTouched.current = true;
+                setScore(Number(e.target.value));
+              }}
+              aria-label="Oura readiness"
+            />
+            <span className="slider-end">Sharp</span>
+          </div>
+
+          <div className="mode-tag">NASI · {tier.mode} mode · 🛡 {shieldedCount} shielded</div>
         </header>
 
-        <div className="control">
-          <input
-            className="slider"
-            type="range"
-            min={50}
-            max={98}
-            value={score}
-            onChange={(e) => {
-              userTouched.current = true;
-              setScore(Number(e.target.value));
-            }}
-            aria-label="Oura readiness"
-          />
-        </div>
-
-        <button className="flip" onClick={flipToSharp}>
-          {score >= 80 ? "↺ What if I were Fog?" : "⚡ What if I were Sharp?"}
-        </button>
-
         {diary.length > 0 && (
-          <div className="diary" aria-label="weather diary">
-            <span className="diary-label">weather diary · recent readings</span>
-            <div className="diary-track">
-              {diary
-                .slice()
-                .reverse()
-                .map((d) => (
-                  <span
-                    key={d.id ?? d.created_at}
-                    className="diary-chip"
-                    data-tier={d.tier}
-                    title={`${d.readiness} · ${d.tier}`}
-                  >
-                    {d.readiness}
-                  </span>
-                ))}
+          <>
+            <div className="divider" aria-hidden />
+            <div className="diary" aria-label="weather diary">
+              <span className="diary-label">weather diary · recent readings</span>
+              <div className="diary-track">
+                {diary
+                  .slice()
+                  .reverse()
+                  .map((d) => (
+                    <span
+                      key={d.id ?? d.created_at}
+                      className="diary-chip"
+                      data-tier={d.tier}
+                      title={`${d.readiness} · ${d.tier}`}
+                    >
+                      {d.readiness}
+                    </span>
+                  ))}
+              </div>
             </div>
-          </div>
+          </>
         )}
 
-        <div className="shield-count">
-          showing intensity ≤ {tier.ceiling} · your ring decides what gets through
+        <div className="divider" aria-hidden />
+
+        <div className="feed-head">
+          <span className="feed-title">Content drawn from</span>
+          <div className="feed-sources">
+            {sources.map((s) => (
+              <span key={s} className="src-tag">
+                {s}
+              </span>
+            ))}
+          </div>
+          <span className="shield-note">
+            showing intensity ≤ {tier.ceiling} · your ring decides what gets through
+          </span>
         </div>
 
         <section className="feed">
