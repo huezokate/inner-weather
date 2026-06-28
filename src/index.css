@@ -144,7 +144,7 @@ body {
 .card {
   position: relative; background: var(--card);
   border: var(--border-w) solid var(--border); border-radius: 16px;
-  padding: 16px; min-height: 128px; overflow: hidden;
+  overflow: hidden; display: flex; flex-direction: column;
   /* --i is the card's visual index (set inline from App.tsx); the shield lifts in a
      staggered wave on the flip — far more legible on a projector than one flat un-blur. */
   --i-delay: calc(var(--i, 0) * 45ms);
@@ -153,10 +153,23 @@ body {
     filter 700ms ease var(--i-delay),
     transform 700ms ease var(--i-delay);
 }
-.card .emoji { font-size: 30px; display: block; margin-bottom: 10px; }
-.card .ctitle { font-size: 14px; line-height: 1.4; font-weight: 600; }
-.card .meta { position: absolute; bottom: 10px; right: 12px; font-size: 10px; opacity: 0.5; letter-spacing: 1px; }
-.card .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 4px; }
+/* media region: the real thumbnail (object-fit cover) with the kind-emoji underneath as the
+   fallback — if the <img> errors it removes itself (App.tsx) and the emoji shows through. */
+.card .media {
+  position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--accent) 14%, var(--card));
+  border-bottom: var(--border-w) solid var(--border);
+}
+.card .media .thumb { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.card .media .emoji { font-size: 46px; line-height: 1; }
+.card .cbody { display: flex; flex-direction: column; gap: 8px; flex: 1; padding: 13px 15px 15px; }
+.card .ctitle {
+  font-size: 14px; line-height: 1.35; font-weight: 600;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.card .meta { display: flex; align-items: center; margin-top: auto; font-size: 10px; opacity: 0.5; letter-spacing: 1px; }
+.card .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-right: 5px; }
 
 /* shielded = above the ceiling: frosted, demoted. Blur bumped to 8px / lower saturation
    so "shielded" reads unmistakably on a low-contrast projector (T-001-06). */

@@ -4,6 +4,7 @@
 
 import { fetchReddit } from "./sources/reddit";
 import { fetchYouCom } from "./sources/youcom";
+import { fetchHackerNews } from "./sources/hackernews";
 import { classifyIntensity } from "./lib/classify";
 
 export interface FeedItem {
@@ -67,15 +68,48 @@ function dedupe(items: FeedItem[]): FeedItem[] {
   return out;
 }
 
+/** YouTube watch/short/embed/youtu.be URL → native hqdefault thumbnail (free, no key). */
+function ytThumb(url: string): string | undefined {
+  const m = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/
+  );
+  return m ? `https://i.ytimg.com/vi/${m[1]}/hqdefault.jpg` : undefined;
+}
+
+/** Last-resort thumbnail: a live screenshot of the page (thum.io, no key). The card's <img>
+ *  removes itself on error and reveals the emoji, so a slow/failed shot never blanks a card. */
+function screenshotThumb(url: string): string {
+  return `https://image.thum.io/get/width/600/crop/450/${url}`;
+}
+
+const KIND_EMOJI: Record<FeedItem["kind"], string> = {
+  cute: "🐾", art: "🎨", nature: "🌿", poem: "🕯️", news: "📰", hottake: "🔥", hype: "🚀",
+};
+
+/** Give every live item a thumbnail (native YouTube → existing → page screenshot) and an
+ *  emoji fallback by kind, so the grid reads as real content even before images load. */
+function withMedia(items: FeedItem[]): FeedItem[] {
+  return items.map((it) => ({
+    ...it,
+    thumbnail:
+      (it.url ? ytThumb(it.url) : undefined) ||
+      it.thumbnail ||
+      (it.url ? screenshotThumb(it.url) : undefined),
+    emoji: it.emoji || KIND_EMOJI[it.kind],
+  }));
+}
+
 export async function fetchLiveFeed(): Promise<FeedItem[]> {
   try {
-    // Both adapters are total (never reject — each returns [] on failure), so run them
-    // concurrently. You.com leads the array so the live web lane survives the cap below.
-    const [you, reddit] = await Promise.all([
+    // All adapters are total (never reject — each returns [] on failure), so run them
+    // concurrently. You.com + Hacker News lead (richest thumbnails); Reddit trails (it
+    // often 403s in prod). withMedia() then guarantees every live card has an image.
+    const [you, hn, reddit] = await Promise.all([
       fetchYouCom(),
+      fetchHackerNews(),
       fetchReddit(REDDIT_LANES),
     ]);
-    const live = dedupe([...you, ...reddit]).slice(0, 20); // append to HERO_FEED; never replace it
+    const live = withMedia(dedupe([...you, ...hn, ...reddit])).slice(0, 24); // appended to HERO_FEED
     return classifyIntensity(live); // refine live intensities; returns `live` unchanged on any failure
   } catch {
     return []; // demo floor: never let a live source break the app

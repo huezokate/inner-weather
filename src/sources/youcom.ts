@@ -19,8 +19,10 @@ export interface YouComQuery {
  * shielded in Fog/Perseverance and only surfaces in Sharp, so it exercises the flip.
  */
 export const YOUCOM_QUERIES: YouComQuery[] = [
-  { query: "wholesome calming nature", intensity: 2, kind: "nature" },
-  { query: "biggest tech hot takes today", intensity: 5, kind: "hottake" },
+  { query: "calming nature relaxation video youtube", intensity: 1, kind: "nature" },
+  { query: "wholesome cute animals youtube", intensity: 2, kind: "cute" },
+  { query: "world news headlines today", intensity: 4, kind: "news" },
+  { query: "biggest tech hot takes", intensity: 5, kind: "hottake" },
 ];
 
 // Dev: Vite proxy (/youcom → ydc-index.io) dodges CORS, client sends the key. Prod: a

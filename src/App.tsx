@@ -230,11 +230,25 @@ export default function App() {
                 className={`card${shielded ? " shielded" : ""}`}
                 style={{ "--i": idx } as CSSProperties}
               >
-                <span className="emoji">{it.emoji ?? "🗞️"}</span>
-                <div className="ctitle">{it.title}</div>
-                <div className="meta">
-                  <span className="dot" />
-                  i{it.intensity} · {it.source}
+                <div className="media">
+                  {it.thumbnail && (
+                    <img
+                      className="thumb"
+                      src={it.thumbnail}
+                      alt=""
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => e.currentTarget.remove()}
+                    />
+                  )}
+                  <span className="emoji">{it.emoji ?? "🗞️"}</span>
+                </div>
+                <div className="cbody">
+                  <div className="ctitle">{it.title}</div>
+                  <div className="meta">
+                    <span className="dot" />
+                    i{it.intensity} · {it.source}
+                  </div>
                 </div>
                 <div className="shieldveil">
                   <span className="lock">🛡</span>
