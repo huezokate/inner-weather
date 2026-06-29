@@ -5,6 +5,8 @@
 import { fetchReddit } from "./sources/reddit";
 import { fetchYouCom } from "./sources/youcom";
 import { fetchHackerNews } from "./sources/hackernews";
+import { fetchDevTo } from "./sources/devto";
+import { fetchMastodon } from "./sources/mastodon";
 import { classifyIntensity } from "./lib/classify";
 
 export interface FeedItem {
@@ -24,18 +26,18 @@ export interface FeedItem {
 // Hand-tagged so the Sharp↔Fog flip ALWAYS looks perfect on stage. Demo-safe:
 // works with zero API keys. Live sources (below) append to this at runtime.
 export const HERO_FEED: FeedItem[] = [
-  { id: "h1", intensity: 1, kind: "cute",    emoji: "🐢", title: "a turtle eating a strawberry, very slowly", source: "curated" },
-  { id: "h2", intensity: 1, kind: "nature",  emoji: "🌿", title: "10 hours of rain on a tent", source: "curated" },
-  { id: "h3", intensity: 1, kind: "poem",    emoji: "🕯️", title: "“rest is also a kind of arrival.”", source: "curated" },
-  { id: "h4", intensity: 2, kind: "art",     emoji: "🎨", title: "slow watercolor timelapse — dusk over water", source: "curated" },
-  { id: "h5", intensity: 2, kind: "cute",    emoji: "🦦", title: "otters holding hands so they don't drift apart", source: "curated" },
-  { id: "h6", intensity: 2, kind: "nature",  emoji: "🍵", title: "how to brew tea like it matters", source: "curated" },
-  { id: "h7", intensity: 3, kind: "news",    emoji: "📰", title: "a balanced recap of this week in tech", source: "curated" },
-  { id: "h8", intensity: 3, kind: "news",    emoji: "🗺️", title: "explainer: what actually changed in the new release", source: "curated" },
-  { id: "h9", intensity: 4, kind: "hype",    emoji: "🚀", title: "you have NO excuse — here's how to 10x your output", source: "curated" },
-  { id: "h10", intensity: 5, kind: "hottake", emoji: "🔥", title: "unpopular opinion: your morning routine is cope", source: "curated" },
-  { id: "h11", intensity: 5, kind: "hottake", emoji: "💢", title: "everyone shipping AI slop is ruining the craft. fight me.", source: "curated" },
-  { id: "h12", intensity: 4, kind: "hype",   emoji: "📈", title: "if you're not building at 2am are you even serious?", source: "curated" },
+  { id: "h1", intensity: 1, kind: "cute",    emoji: "🐢", title: "a turtle eating a strawberry, very slowly", source: "inner weather" },
+  { id: "h2", intensity: 1, kind: "nature",  emoji: "🌿", title: "10 hours of rain on a tent", source: "inner weather" },
+  { id: "h3", intensity: 1, kind: "poem",    emoji: "🕯️", title: "“rest is also a kind of arrival.”", source: "inner weather" },
+  { id: "h4", intensity: 2, kind: "art",     emoji: "🎨", title: "slow watercolor timelapse — dusk over water", source: "inner weather" },
+  { id: "h5", intensity: 2, kind: "cute",    emoji: "🦦", title: "otters holding hands so they don't drift apart", source: "inner weather" },
+  { id: "h6", intensity: 2, kind: "nature",  emoji: "🍵", title: "how to brew tea like it matters", source: "inner weather" },
+  { id: "h7", intensity: 3, kind: "news",    emoji: "📰", title: "a balanced recap of this week in tech", source: "inner weather" },
+  { id: "h8", intensity: 3, kind: "news",    emoji: "🗺️", title: "explainer: what actually changed in the new release", source: "inner weather" },
+  { id: "h9", intensity: 4, kind: "hype",    emoji: "🚀", title: "you have NO excuse — here's how to 10x your output", source: "inner weather" },
+  { id: "h10", intensity: 5, kind: "hottake", emoji: "🔥", title: "unpopular opinion: your morning routine is cope", source: "inner weather" },
+  { id: "h11", intensity: 5, kind: "hottake", emoji: "💢", title: "everyone shipping AI slop is ruining the craft. fight me.", source: "inner weather" },
+  { id: "h12", intensity: 4, kind: "hype",   emoji: "📈", title: "if you're not building at 2am are you even serious?", source: "inner weather" },
 ];
 
 // ── Live sources (loop wires these once keys are in) ────────────────────────
@@ -105,17 +107,28 @@ function withMedia(items: FeedItem[]): FeedItem[] {
   }));
 }
 
+/** Round-robin merge so the cap below keeps a mix from every source, not just the first ones. */
+function interleave(lists: FeedItem[][]): FeedItem[] {
+  const out: FeedItem[] = [];
+  const max = Math.max(0, ...lists.map((l) => l.length));
+  for (let i = 0; i < max; i++) for (const l of lists) if (l[i]) out.push(l[i]);
+  return out;
+}
+
 export async function fetchLiveFeed(): Promise<FeedItem[]> {
   try {
     // All adapters are total (never reject — each returns [] on failure), so run them
-    // concurrently. You.com + Hacker News lead (richest thumbnails); Reddit trails (it
-    // often 403s in prod). withMedia() then guarantees every live card has an image.
-    const [you, hn, reddit] = await Promise.all([
+    // concurrently. Mastodon + Dev.to + You.com + Hacker News carry native thumbnails; Reddit
+    // trails (it often 403s in prod). interleave() keeps a mix under the cap; withMedia() then
+    // guarantees every live card has an image.
+    const [you, hn, devto, masto, reddit] = await Promise.all([
       fetchYouCom(),
       fetchHackerNews(),
+      fetchDevTo(),
+      fetchMastodon(),
       fetchReddit(REDDIT_LANES),
     ]);
-    const live = withMedia(dedupe([...you, ...hn, ...reddit])).slice(0, 24); // appended to HERO_FEED
+    const live = withMedia(dedupe(interleave([masto, you, devto, hn, reddit]))).slice(0, 28);
     return classifyIntensity(live); // refine live intensities; returns `live` unchanged on any failure
   } catch {
     return []; // demo floor: never let a live source break the app
