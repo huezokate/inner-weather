@@ -64,6 +64,8 @@ export default function App() {
   // Tap-to-play: a YouTube video open in the lightbox (id); plus the card hovered for inline preview.
   const [modalVideo, setModalVideo] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
+  // Source filter chips: sources toggled OFF here are hidden from the feed.
+  const [hiddenSources, setHiddenSources] = useState<Set<string>>(new Set());
   // Once the user drags the slider, their value wins — a late Oura response must not
   // clobber it. A ref (not state) so the async effect reads it without re-rendering.
   const userTouched = useRef(false);
@@ -98,11 +100,17 @@ export default function App() {
       .catch(() => {});
   }, []);
 
+  // The feed's base set: live content, or the curated floor only if everything came back empty.
+  const baseItems = live.length ? live : HERO_FEED;
+
+  // Every source present, for the clickable filter chips (independent of what's toggled off).
+  const sources = useMemo(
+    () => Array.from(new Set(baseItems.map((i) => i.source))),
+    [baseItems]
+  );
+
   const items = useMemo(() => {
-    // Live content only. The curated HERO_FEED stays purely as an emergency floor — shown
-    // only if every live source comes back empty (e.g. no network at demo time) — so the
-    // flip demo always has something to morph.
-    const all = live.length ? live : HERO_FEED;
+    const all = baseItems.filter((it) => !hiddenSources.has(it.source));
     // Sort so EVERY tier change reorders the grid (this is what the FLIP shuffle animates):
     //  · unshielded cards (intensity ≤ ceiling) always lead; shielded ones sink below the fold
     //  · Sharp leads with the most intense ("bring it on")
@@ -120,7 +128,7 @@ export default function App() {
         : a.intensity - b.intensity; // visible group: softest leads
     });
     return applyShield(sorted, ceil);
-  }, [live, tier.ceiling, tier.key]);
+  }, [baseItems, hiddenSources, tier.ceiling, tier.key]);
 
   const shieldedCount = items.filter((i) => i.shielded && !overrides.has(i.id)).length;
 
@@ -136,9 +144,6 @@ export default function App() {
     tier.key === "SHARP" && !reduceMotion
       ? items.find((i) => !i.shielded && i.url && ytId(i.url))?.id
       : undefined;
-
-  // Distinct sources currently in the feed, for the "content drawn from" header.
-  const sources = Array.from(new Set(items.map((i) => i.source)));
 
   // Persist each *settled* reading. Debounced ~900ms (matches the morph feel) so dragging
   // the slider writes one row when you stop, not one per pixel. Guarded so a failed write
@@ -180,6 +185,16 @@ export default function App() {
     const vid = it.url ? ytId(it.url) : undefined;
     if (vid) setModalVideo(vid);
     else if (it.url) window.open(it.url, "_blank", "noopener,noreferrer");
+  }
+
+  // Toggle a source chip on/off; the feed re-filters and re-shuffles (FLIP animates it).
+  function toggleSource(s: string) {
+    setHiddenSources((prev) => {
+      const next = new Set(prev);
+      if (next.has(s)) next.delete(s);
+      else next.add(s);
+      return next;
+    });
   }
 
   return (
@@ -253,11 +268,20 @@ export default function App() {
         <div className="feed-head">
           <span className="feed-title">Content drawn from</span>
           <div className="feed-sources">
-            {sources.map((s) => (
-              <span key={s} className="src-tag">
-                {s}
-              </span>
-            ))}
+            {sources.map((s) => {
+              const off = hiddenSources.has(s);
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  className={`src-tag${off ? " off" : ""}`}
+                  onClick={() => toggleSource(s)}
+                  aria-pressed={!off}
+                >
+                  {s}
+                </button>
+              );
+            })}
           </div>
           <span className="shield-note">
             showing intensity ≤ {tier.ceiling} · your ring decides what gets through

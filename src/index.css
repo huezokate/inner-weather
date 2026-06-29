@@ -150,10 +150,14 @@ body {
 .feed-title { font-size: 12px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; opacity: 0.7; }
 .feed-sources { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
 .src-tag {
-  font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: lowercase;
-  padding: 3px 9px; border-radius: 999px;
-  border: var(--border-w) solid var(--accent); color: var(--accent);
+  font: inherit; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: lowercase;
+  padding: 3px 11px; border-radius: 999px; cursor: pointer;
+  border: var(--border-w) solid var(--accent); color: var(--accent); background: transparent;
+  transition: opacity 160ms ease, background 160ms ease, color var(--morph), border-color var(--morph);
 }
+.src-tag:hover { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+/* deselected: muted, hollow, struck-through */
+.src-tag.off { opacity: 0.42; border-color: var(--border); color: var(--fg); text-decoration: line-through; }
 .shield-note { font-size: 11px; opacity: 0.55; letter-spacing: 1px; }
 
 /* ── Feed: masonry (3 cols desktop / 2 mobile), variable-height tiles ────── */
