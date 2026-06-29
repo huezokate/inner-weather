@@ -99,7 +99,10 @@ export default function App() {
   }, []);
 
   const items = useMemo(() => {
-    const all = [...HERO_FEED, ...live];
+    // Live content only. The curated HERO_FEED stays purely as an emergency floor — shown
+    // only if every live source comes back empty (e.g. no network at demo time) — so the
+    // flip demo always has something to morph.
+    const all = live.length ? live : HERO_FEED;
     // Sort so EVERY tier change reorders the grid (this is what the FLIP shuffle animates):
     //  · unshielded cards (intensity ≤ ceiling) always lead; shielded ones sink below the fold
     //  · Sharp leads with the most intense ("bring it on")

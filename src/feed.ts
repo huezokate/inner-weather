@@ -44,15 +44,7 @@ export const HERO_FEED: FeedItem[] = [
 // Source-level intensity priors so we can show real content even before the
 // LLM classifier runs. The classifier (InsForge AI gateway) refines per-item.
 
-/** Reddit public JSON — no auth. Maps subreddit → rough intensity prior. */
-export const REDDIT_LANES: { sub: string; intensity: number; kind: FeedItem["kind"] }[] = [
-  { sub: "aww",            intensity: 1, kind: "cute" },
-  { sub: "EarthPorn",      intensity: 1, kind: "nature" },
-  { sub: "CozyPlaces",     intensity: 2, kind: "art" },
-  { sub: "todayilearned",  intensity: 3, kind: "news" },
-  { sub: "unpopularopinion", intensity: 5, kind: "hottake" },
-  { sub: "rant",           intensity: 5, kind: "hottake" },
-];
+// (Reddit lanes now live in sources/reddit.ts — fetched via meme-api.com, since Reddit's own API 403s us.)
 
 // Wired: classifyIntensity(items) -> InsForge AI gateway refines each live item's intensity to
 // a real 1–5 model score (src/lib/classify.ts). Total — falls back to these priors on failure.
@@ -126,7 +118,7 @@ export async function fetchLiveFeed(): Promise<FeedItem[]> {
       fetchHackerNews(),
       fetchDevTo(),
       fetchMastodon(),
-      fetchReddit(REDDIT_LANES),
+      fetchReddit(),
     ]);
     const live = withMedia(dedupe(interleave([masto, you, devto, hn, reddit]))).slice(0, 28);
     return classifyIntensity(live); // refine live intensities; returns `live` unchanged on any failure
