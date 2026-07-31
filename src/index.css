@@ -2,50 +2,78 @@
    Fog ↔ Sharp are a figure-ground inversion (purple bg / pale ink ↔ white bg / purple ink);
    Perseverance is the warm beige hinge where the purple migrates from ground to figure.
    Flat pop-art color — glow retired, hard screenprint offsets instead.
-   Palette WCAG-AA verified (every body pair ≥ 4.5:1; pink/yellow are fills, not body text). */
+
+   Theme transition follows the f13 design system: OKLCH interpolation + WCAG AA contrast gate
+   (contrast is law). Every tier token below is a registered @property <color> var, so the browser
+   morphs it through perceptually-uniform OKLab/OKLCH space on each tier change — Fog→Sharp crosses
+   purple→white with NO muddy sRGB gray dip (that dip is the whole reason we left hex lerping).
+   Locked by product constraint: the three PRIMARY BACKGROUNDS stay put (Fog purple / Perseverance
+   beige / Sharp white) — written here as their exact OKLCH equivalents (round-trip verified to the
+   original hex, zero drift). Every other token may adapt, but ONLY within the contrast gate:
+   body ink ≥ 4.5:1 and UI borders ≥ 3:1 on every tier (f13 Thesis 5 — adaptation is unbounded in
+   direction, bounded in legibility). Ratios verified: Fog 11.98/8.15/3.15, Perseverance 9.68/5.12/3.08,
+   Sharp 10.19/8.84/3.26 (ink / accent / border, each on its own bg). */
+
+/* Register the animated color tokens so transitions interpolate them AS COLORS (OKLab/OKLCH),
+   not as sRGB hex lerps. Anchors (slider, layout, interactions) never move — only ink adapts
+   (f13 Thesis 9: adapt the periphery, never the primitives). */
+@property --bg      { syntax: "<color>"; inherits: true; initial-value: #2e2150; }
+@property --fg      { syntax: "<color>"; inherits: true; initial-value: #ede7f6; }
+@property --card    { syntax: "<color>"; inherits: true; initial-value: #3d2e66; }
+@property --accent  { syntax: "<color>"; inherits: true; initial-value: #ffa8d5; }
+@property --accent2 { syntax: "<color>"; inherits: true; initial-value: #c9b3f0; }
+@property --accent3 { syntax: "<color>"; inherits: true; initial-value: #ffd60a; }
+@property --border  { syntax: "<color>"; inherits: true; initial-value: rgba(255, 168, 213, 0.5); }
 
 :root {
   /* default = FOG, so the very first paint matches before App sets data-tier */
-  --bg: #2e2150; --fg: #ede7f6; --card: #3d2e66;
-  --accent: #ffa8d5;   /* pink — primary, text-safe on bg */
-  --accent2: #c9b3f0;  /* lavender (foreshadows Perseverance) */
-  --accent3: #ffd60a;  /* yellow pop */
-  --border: rgba(255, 168, 213, 0.5); --border-w: 1.6px;
+  --bg: oklch(0.2901 0.0828 293.30); --fg: oklch(0.9370 0.0210 304.02); --card: oklch(0.3481 0.0947 293.19);
+  --accent: oklch(0.8296 0.1159 347.58);   /* pink — primary, text-safe on bg (8.15:1) */
+  --accent2: oklch(0.8063 0.0877 300.97);  /* lavender (foreshadows Perseverance) */
+  --accent3: oklch(0.8849 0.1805 94.78);   /* yellow pop */
+  --border: oklch(0.8296 0.1159 347.58 / 0.5); --border-w: 1.6px;   /* 3.15:1 on bg */
   --glow: 0px; --glow-lg: 0px;          /* glow retired — flat pop, not cyberpunk */
   --pop-shadow: 4px 4px 0 #160d2b;      /* hard screenprint offset, zero blur */
   --fog-opacity: 0.5; --rain-opacity: 0.16; --grid-opacity: 0;
+  /* Calm ease-out. Duration/easing is inferred per f13's motion axis (f13 never specs easing
+     numerically — the ROADMAP flags it as always-inferred), so we pick a settled curve here. */
   --morph: 900ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Morph the COLOR TOKENS themselves — one OKLCH interpolation drives the entire page, so bg,
+     ink, card, accents and borders all cross-fade together through perceptually-even midpoints. */
+  transition:
+    --bg var(--morph), --fg var(--morph), --card var(--morph), --accent var(--morph),
+    --accent2 var(--morph), --accent3 var(--morph), --border var(--morph);
   font-family: "Helvetica Neue", Helvetica, Arial, "Inter", system-ui, sans-serif;
   color-scheme: dark;
 }
 
 /* ── Tier themes (atomic — set the whole set, never one token) ────────────── */
 [data-tier="FOG"] {
-  --bg: #2e2150; --fg: #ede7f6; --card: #3d2e66;
-  --accent: #ffa8d5; --accent2: #c9b3f0; --accent3: #ffd60a;
-  --border: rgba(255, 168, 213, 0.5); --border-w: 1.6px;
+  --bg: oklch(0.2901 0.0828 293.30); --fg: oklch(0.9370 0.0210 304.02); --card: oklch(0.3481 0.0947 293.19);
+  --accent: oklch(0.8296 0.1159 347.58); --accent2: oklch(0.8063 0.0877 300.97); --accent3: oklch(0.8849 0.1805 94.78);
+  --border: oklch(0.8296 0.1159 347.58 / 0.5); --border-w: 1.6px;   /* 3.15:1 on bg */
   --glow: 0px; --glow-lg: 0px;
   --pop-shadow: 4px 4px 0 #160d2b;
   --fog-opacity: 0.5; --rain-opacity: 0.16; --grid-opacity: 0;
   color-scheme: dark;
 }
 [data-tier="PERSEVERANCE"] {
-  --bg: #e8dccb; --fg: #3a2e2a; --card: #f2eadd;
-  --accent: #7a3f9e;   /* the migrating purple */
-  --accent2: #9b4a2f;  /* terracotta brown — grounding */
-  --accent3: #e91e8c;  /* pink pop */
-  --border: rgba(122, 63, 158, 0.5); --border-w: 1.6px;
+  --bg: oklch(0.8995 0.0264 76.78); --fg: oklch(0.3132 0.0191 39.26); --card: oklch(0.9398 0.0194 80.12);
+  --accent: oklch(0.4848 0.1541 310.57);   /* the migrating purple (5.12:1) */
+  --accent2: oklch(0.5062 0.1157 38.85);   /* terracotta brown — grounding */
+  --accent3: oklch(0.6181 0.2407 355.30);  /* pink pop */
+  --border: oklch(0.4848 0.1541 310.57 / 0.72); --border-w: 1.6px;   /* alpha 0.5→0.72 for AA gate: 3.08:1 */
   --glow: 0px; --glow-lg: 0px;
   --pop-shadow: 4px 4px 0 #d3c3a4;
   --fog-opacity: 0.16; --rain-opacity: 0; --grid-opacity: 0;
   color-scheme: light;
 }
 [data-tier="SHARP"] {
-  --bg: #ffffff; --fg: #4a2e8c; --card: #f4f0fb;
-  --accent: #5a2ea6;   /* purple ink — Fog, inverted */
-  --accent2: #e5197e;  /* pink pop */
-  --accent3: #ffd60a;  /* yellow = the sun (carries the "sharp clarity") */
-  --border: rgba(90, 46, 166, 0.45); --border-w: 1.8px;
+  --bg: oklch(1 0 0); --fg: oklch(0.3913 0.1478 291.82); --card: oklch(0.9614 0.0152 302.56);
+  --accent: oklch(0.4304 0.1801 294.30);   /* purple ink — Fog, inverted (8.84:1) */
+  --accent2: oklch(0.6046 0.2357 359.14);  /* pink pop */
+  --accent3: oklch(0.8849 0.1805 94.78);   /* yellow = the sun (carries the "sharp clarity") */
+  --border: oklch(0.4304 0.1801 294.30 / 0.60); --border-w: 1.8px;   /* alpha 0.45→0.60 for AA gate: 3.26:1 */
   --glow: 0px; --glow-lg: 0px;
   --pop-shadow: 5px 5px 0 #4a2e8c;     /* purple registration offset on white */
   --fog-opacity: 0; --rain-opacity: 0; --grid-opacity: 0;
@@ -58,7 +86,7 @@ body {
   background: var(--bg);
   color: var(--fg);
   min-height: 100vh;
-  transition: background var(--morph), color var(--morph);
+  /* bg + ink morph is driven by the --bg/--fg token animation (OKLCH), not a per-property lerp */
   overflow-x: hidden;
 }
 
@@ -86,7 +114,7 @@ body {
   transition: opacity var(--morph);
   background-image: repeating-linear-gradient(
     100deg, transparent 0 8px,
-    color-mix(in srgb, var(--accent2) 35%, transparent) 8px 9px
+    color-mix(in oklch, var(--accent2) 35%, transparent) 8px 9px
   );
   background-size: 100% 200%;
   animation: rainfall 0.9s linear infinite;
@@ -105,7 +133,7 @@ body {
 .score { font-size: 30px; font-weight: 700; letter-spacing: -1px; opacity: 0.7; }
 .tiername {
   font-size: 40px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
-  color: var(--accent); line-height: 0.95; transition: color var(--morph);
+  color: var(--accent); line-height: 0.95; /* color morphs via the --accent token (OKLCH) */
 }
 .blurb { opacity: 0.72; font-size: 14px; }
 .mode-tag { font-size: 11px; opacity: 0.55; letter-spacing: 2px; }
@@ -136,7 +164,8 @@ body {
   border: var(--border-w) solid var(--bg); border-radius: 12px;
   font: inherit; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; cursor: pointer;
   box-shadow: var(--pop-shadow);
-  transition: background var(--morph), color var(--morph), transform 120ms ease, box-shadow 120ms ease;
+  /* bg/color morph via --accent/--bg tokens; keep the snappy press feedback */
+  transition: transform 120ms ease, box-shadow 120ms ease;
 }
 .flip:hover { filter: brightness(1.06); }
 .flip:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--bg); }
@@ -153,9 +182,10 @@ body {
   font: inherit; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: lowercase;
   padding: 3px 11px; border-radius: 999px; cursor: pointer;
   border: var(--border-w) solid var(--accent); color: var(--accent); background: transparent;
-  transition: opacity 160ms ease, background 160ms ease, color var(--morph), border-color var(--morph);
+  /* ink/border morph via the --accent token (OKLCH); keep quick hover feedback */
+  transition: opacity 160ms ease, background 160ms ease;
 }
-.src-tag:hover { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.src-tag:hover { background: color-mix(in oklch, var(--accent) 16%, transparent); }
 /* deselected: muted, hollow, struck-through */
 .src-tag.off { opacity: 0.42; border-color: var(--border); color: var(--fg); text-decoration: line-through; }
 .shield-note { font-size: 11px; opacity: 0.55; letter-spacing: 1px; }
@@ -171,7 +201,9 @@ body {
      staggered wave on the flip — far more legible on a projector than one flat un-blur. */
   --i-delay: calc(var(--i, 0) * 45ms);
   box-shadow: var(--pop-shadow);
-  transition: background var(--morph), border-color var(--morph), box-shadow var(--morph),
+  /* bg + border morph via --card/--border tokens (OKLCH); box-shadow uses --pop-shadow (a shadow,
+     not a registered token) so it still needs its own transition. filter/transform = the un-blur wave. */
+  transition: box-shadow var(--morph),
     filter 700ms ease var(--i-delay),
     transform 700ms ease var(--i-delay);
 }
@@ -180,7 +212,7 @@ body {
 .card .media {
   position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden;
   display: flex; align-items: center; justify-content: center;
-  background: color-mix(in srgb, var(--accent) 14%, var(--card));
+  background: color-mix(in oklch, var(--accent) 14%, var(--card));
   border-bottom: var(--border-w) solid var(--border);
 }
 .card .media .thumb { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -208,12 +240,12 @@ body {
 }
 
 .card.playable:hover .media .thumb { transform: scale(1.12); }
-.card.playable:hover { box-shadow: var(--pop-shadow), 0 8px 22px color-mix(in srgb, var(--accent) 22%, transparent); }
+.card.playable:hover { box-shadow: var(--pop-shadow), 0 8px 22px color-mix(in oklch, var(--accent) 22%, transparent); }
 
 .card .playbadge {
   position: absolute; z-index: 2; width: 44px; height: 44px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center; padding-left: 3px;
-  background: color-mix(in srgb, var(--bg) 50%, transparent); color: #fff; font-size: 15px;
+  background: color-mix(in oklch, var(--bg) 50%, transparent); color: #fff; font-size: 15px;
   backdrop-filter: blur(2px); border: 1.5px solid rgba(255, 255, 255, 0.85);
 }
 [data-tier="SHARP"] .card .playbadge { animation: pulse 1.6s ease-in-out infinite; }
@@ -224,17 +256,17 @@ body {
 /* image-less (curated) tiles → bold Warhol pop tile, not a lonely emoji */
 .card.noimg .media {
   background: linear-gradient(135deg,
-    color-mix(in srgb, var(--accent) 30%, var(--card)),
-    color-mix(in srgb, var(--accent3) 26%, var(--card)));
+    color-mix(in oklch, var(--accent) 30%, var(--card)),
+    color-mix(in oklch, var(--accent3) 26%, var(--card)));
 }
-.card.noimg .media .emoji { font-size: 54px; filter: drop-shadow(0 2px 0 color-mix(in srgb, var(--bg) 35%, transparent)); }
+.card.noimg .media .emoji { font-size: 54px; filter: drop-shadow(0 2px 0 color-mix(in oklch, var(--bg) 35%, transparent)); }
 [data-tier="SHARP"] .card.noimg .media .emoji { animation: bounce 1.9s ease-in-out infinite; }
 @keyframes bounce { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-7px) rotate(-5deg); } }
 
 /* video lightbox */
 .modal {
   position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center;
-  background: color-mix(in srgb, #000 72%, transparent); padding: 24px; animation: fadein 180ms ease;
+  background: color-mix(in oklch, #000 72%, transparent); padding: 24px; animation: fadein 180ms ease;
 }
 @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
 .modal-inner { position: relative; width: min(900px, 100%); aspect-ratio: 16 / 9; }
@@ -251,7 +283,7 @@ body {
 .card.shielded .shieldveil {
   position: absolute; inset: 0; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 6px;
-  background: color-mix(in srgb, var(--bg) 55%, transparent);
+  background: color-mix(in oklch, var(--bg) 55%, transparent);
   backdrop-filter: blur(2px);
 }
 .card.shielded .shieldveil > * { filter: blur(0); }
@@ -282,14 +314,17 @@ body {
   border: var(--border-w) solid var(--border);
   transition: all var(--morph);
 }
-.diary-chip[data-tier="FOG"] { background: #2e2150; color: #ede7f6; border-color: #ffa8d5; }
-.diary-chip[data-tier="PERSEVERANCE"] { background: #e8dccb; color: #3a2e2a; border-color: #7a3f9e; }
-.diary-chip[data-tier="SHARP"] { background: #ffffff; color: #4a2e8c; border-color: #5a2ea6; }
+/* pinned swatches — each chip wears the captured tier regardless of the page's current tier (OKLCH) */
+.diary-chip[data-tier="FOG"] { background: oklch(0.2901 0.0828 293.30); color: oklch(0.9370 0.0210 304.02); border-color: oklch(0.8296 0.1159 347.58); }
+.diary-chip[data-tier="PERSEVERANCE"] { background: oklch(0.8995 0.0264 76.78); color: oklch(0.3132 0.0191 39.26); border-color: oklch(0.4848 0.1541 310.57); }
+.diary-chip[data-tier="SHARP"] { background: oklch(1 0 0); color: oklch(0.3913 0.1478 291.82); border-color: oklch(0.4304 0.1801 294.30); }
 
 /* ── Accessibility: respect reduced motion ──────────────────────────────────
    Cards reorder instantly (no slide/cascade) and the rain holds still. The
    JS FLIP in App.tsx also bails out under this query — the un-blur still reads. */
 @media (prefers-reduced-motion: reduce) {
+  /* settle the OKLCH token morph instantly too — no crossfade, just land on the tier */
+  :root { transition-duration: 0.001ms; }
   .card { transition-duration: 0.001ms; }
   .atmos .rain { animation: none; }
   .card .media .thumb, .card .playbadge, .card.noimg .media .emoji { animation: none !important; }
