@@ -91,22 +91,26 @@ Thanks for watching.
 Intro and close are to camera; everything between is voiceover over the screen recording.)*
 
 ### Intro *(talking head)*
-Hey — I'm Kate. Quick intro before I show you something I'm really proud of. I build software,
-and the thing I care about most is that it's *for* people — accessible, inviting, and honestly
-a little beautiful. I don't think those are a tax on a product; I think they're the point. The
-interface is the only part of any software a human ever actually touches — so as designers and
-developers, that surface is exactly where we get to advocate for the person on the other side.
-And the frontier I find most exciting is **adaptive** technology: software that adjusts to
-*you* instead of forcing you to adjust to it.
+Adaptive technology is extremely exciting to me: software that adjusts to *you* instead of
+forcing you to adjust to it — that's truly 21st century! Let me explain.
+
+I'm Kate, a software designer who loves to build accessible, invitingly beautiful, and intuitive
+products. UI is not a tax on a product; especially nowadays, with dev speed skyrocketing, good UI
+is essential. The interface is the only part of any software a human user will actually interact
+with. As designers and developers, we have to advocate for the person using our creations —
+therefore, adaptive tech!
+
+So let me tell you about something I built…
 
 ### The Oura + MCP "why"
-Here's where this one started. I wear an Oura ring, and I'm a little obsessed. Every morning it
-hands me a readiness score — basically, how recovered my nervous system is. And the more I lived
-with that number, the more I thought: this is such rich signal, and almost nothing in my digital
-life uses it. So I wired Oura into this app over **MCP** — the readiness score flows straight in
-and becomes the thing that drives the entire interface. Imagine an internet that could tell you
-were running on empty and quietly turned the volume down. That's completely buildable today —
-and that's what this is.
+Here's where this one started. I've worn an Oura ring for the past five years — a little obsessed,
+for sure. Every morning it hands me a readiness score — basically, how recovered and empowered I
+am to start a new day. And the more I lived with that number, the more I thought: this is such
+rich data, and almost nothing in my digital life uses it. So I got my Oura API key and wired it
+into this app via **MCP**. Now the readiness score flows straight in and literally drives the
+entire interface without me lifting a finger. Just imagine an internet that could tell you were
+running on empty and quietly turned the volume down. That's completely buildable today — and
+that's what this is.
 
 ### Meet Inner Weather *(cut to voiceover, Fog screen)*
 This is **Inner Weather** — a weather forecast for your nervous system. Your Oura readiness sets
