@@ -3,6 +3,7 @@ import { tierForScore } from "./tiers";
 import { HERO_FEED, fetchLiveFeed, applyShield, ytId, type FeedItem } from "./feed";
 import { fetchOuraReadiness } from "./sources/oura";
 import { writeDiary, readDiary, type DiaryEntry } from "./lib/insforge";
+import { rampVars, RAMP_VAR_NAMES, TIER_T } from "./lib/weatherRamp";
 
 // FLIP (First-Last-Invert-Play) reorder animation for the feed cards. On the Sharp↔Fog
 // flip the sort order changes; without this, cards teleport to their new grid cell. This
@@ -73,10 +74,53 @@ export default function App() {
   const lastWritten = useRef<number | null>(null);
 
   const tier = tierForScore(score);
+  // Current position on the OKLCH morph axis (0 fog · 0.5 beige · 1 white).
+  // null = ramp not yet applied (first paint) or disabled after an error.
+  const rampT = useRef<number | null>(null);
 
   // Apply the morph to the document root so the whole page themes.
   useEffect(() => {
     document.documentElement.setAttribute("data-tier", tier.key);
+  }, [tier.key]);
+
+  // OKLCH weather ramp (the F13 engine applied here): instead of CSS hex-lerping
+  // Fog↔Sharp through gray mush, tween a position along the perceptual ramp so the
+  // morph always travels purple → peach → beige → white, WCAG-gated every frame.
+  // Demo-floor safe: any error clears the inline vars and [data-tier] CSS takes over.
+  useEffect(() => {
+    const root = document.documentElement;
+    try {
+      const target = TIER_T[tier.key];
+      const apply = (t: number) => {
+        for (const [name, value] of Object.entries(rampVars(t))) {
+          root.style.setProperty(name, value);
+        }
+        rampT.current = t;
+      };
+      root.setAttribute("data-ramp", "1");
+      const reduce =
+        typeof matchMedia === "function" &&
+        matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const from = rampT.current;
+      if (from == null || from === target || reduce) {
+        apply(target);
+        return;
+      }
+      // Fog↔Sharp crosses the whole ramp (through the beige hinge) — give it longer.
+      const dur = Math.abs(target - from) > 0.5 ? 1400 : 900;
+      const ease = (x: number) => (x < 0.5 ? 4 * x ** 3 : 1 - (-2 * x + 2) ** 3 / 2);
+      const start = performance.now();
+      let raf = requestAnimationFrame(function frame(now) {
+        const p = Math.min(1, (now - start) / dur);
+        apply(from + (target - from) * ease(p));
+        if (p < 1) raf = requestAnimationFrame(frame);
+      });
+      return () => cancelAnimationFrame(raf);
+    } catch {
+      root.removeAttribute("data-ramp");
+      for (const name of RAMP_VAR_NAMES) root.style.removeProperty(name);
+      rampT.current = null;
+    }
   }, [tier.key]);
 
   // Pull live content once (no-op until the loop wires the sources).
