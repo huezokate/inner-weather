@@ -1,9 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { tierForScore } from "./tiers";
+import { power, tierForScore } from "./tiers";
 import { HERO_FEED, fetchLiveFeed, applyShield, ytId, type FeedItem } from "./feed";
 import { fetchOuraReadiness } from "./sources/oura";
 import { writeDiary, readDiary, type DiaryEntry } from "./lib/insforge";
-import { rampVars, RAMP_VAR_NAMES, TIER_T } from "./lib/weatherRamp";
+import { rampVars, RAMP_VAR_NAMES } from "./lib/weatherRamp";
 
 // FLIP (First-Last-Invert-Play) reorder animation for the feed cards. On the Sharp↔Fog
 // flip the sort order changes; without this, cards teleport to their new grid cell. This
@@ -83,14 +83,16 @@ export default function App() {
     document.documentElement.setAttribute("data-tier", tier.key);
   }, [tier.key]);
 
-  // OKLCH weather ramp (the F13 engine applied here): instead of CSS hex-lerping
-  // Fog↔Sharp through gray mush, tween a position along the perceptual ramp so the
-  // morph always travels purple → peach → beige → white, WCAG-gated every frame.
-  // Demo-floor safe: any error clears the inline vars and [data-tier] CSS takes over.
+  // OKLCH weather ramp (the F13 engine applied here): readiness is a *continuum*,
+  // so the palette tracks the score directly — every point on the slider is its own
+  // color along purple → pink → peach → beige → near-white, WCAG-gated every frame.
+  // Tiers stay discrete for content (shields, grouping, motion); only the color
+  // atmosphere is granular. Demo-floor safe: any error clears the inline vars and
+  // the [data-tier] CSS takes over.
   useEffect(() => {
     const root = document.documentElement;
     try {
-      const target = TIER_T[tier.key];
+      const target = power(score);
       const apply = (t: number) => {
         for (const [name, value] of Object.entries(rampVars(t))) {
           root.style.setProperty(name, value);
@@ -106,8 +108,9 @@ export default function App() {
         apply(target);
         return;
       }
-      // Fog↔Sharp crosses the whole ramp (through the beige hinge) — give it longer.
-      const dur = Math.abs(target - from) > 0.5 ? 1400 : 900;
+      // Duration scales with distance: slider steps glide (~200ms), an Oura seed
+      // or a track-click sweeps the whole wheel in ~1.4s through every hue between.
+      const dur = Math.min(1400, Math.max(200, Math.abs(target - from) * 1800));
       const ease = (x: number) => (x < 0.5 ? 4 * x ** 3 : 1 - (-2 * x + 2) ** 3 / 2);
       const start = performance.now();
       let raf = requestAnimationFrame(function frame(now) {
@@ -121,7 +124,7 @@ export default function App() {
       for (const name of RAMP_VAR_NAMES) root.style.removeProperty(name);
       rampT.current = null;
     }
-  }, [tier.key]);
+  }, [score]);
 
   // Pull live content once (no-op until the loop wires the sources).
   useEffect(() => {

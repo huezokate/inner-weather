@@ -1,12 +1,15 @@
 // Weather ramp — the F13 OKLCH engine applied to the tier morph.
 //
-// The three tier palettes stay exactly as designed in index.css; this module owns
-// only the JOURNEY between them. Instead of letting CSS interpolate hex in sRGB
-// (purple → gray mush → white), the morph travels a perceptual OKLCH path with
-// Perseverance's warm beige as the mandatory waypoint: Fog ↔ Sharp always reads
-// purple → mauve/peach → beige → white. Every intermediate frame passes the F13
-// contrast gate (WCAG AA floor, ported from f13/src/lib/f13/gate.ts) so text
-// stays legible even in the muddy middle of a figure-ground inversion.
+// The three tier palettes stay exactly as designed in index.css; this module
+// turns the space between them into a readiness CONTINUUM. Readiness maps to
+// t ∈ [0,1] (tiers.power) and every t is its own palette along the warm side of
+// the color wheel: purple → mauve/pink → peach → beige (t=0.5, ≈ score 74) →
+// near-white. Instead of CSS hex-lerping in sRGB (purple → gray mush → white),
+// interpolation is perceptual OKLCH with shorter-arc hue, and every resolved
+// palette passes the F13 contrast gate (WCAG AA floor, ported from
+// f13/src/lib/f13/gate.ts) so text stays legible even in the muddy middle of a
+// figure-ground inversion. Tier boundaries still exist for content behavior —
+// color just stopped being quantized to them.
 //
 // Demo-floor safe: pure functions only. If the caller (App.tsx) hits any error
 // it clears the inline vars and the [data-tier] hex themes take over unchanged.
@@ -84,9 +87,6 @@ const ANCHORS: Record<TierKey, Anchor> = {
     { fogOpacity: 0, rainOpacity: 0, borderAlpha: 0.45, borderW: 1.8, popOffset: 5 }
   ),
 };
-
-/** Where each tier sits on the morph axis. Fog↔Sharp must cross the beige hinge. */
-export const TIER_T: Record<TierKey, number> = { FOG: 0, PERSEVERANCE: 0.5, SHARP: 1 };
 
 /* ── Interpolation: shorter-arc hue = the warm route through pink/peach ────── */
 
